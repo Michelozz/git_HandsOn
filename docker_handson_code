@@ -1,0 +1,359 @@
+cd /Users/ilariamarinamichelozzi/Documents/MSc_bioinformatics/UVIC/Epigenomics/Borsari_garrido/HANDS_ON/docker
+
+###################
+# 1. Hello Docker #
+###################
+
+# Check if Docker Engine is running
+docker run hello-world
+
+# Clone the GitHub repository and move to it 
+git clone https://github.com/dgarrimar/teaching
+cd teaching
+
+#############################################
+# 3. Build a Docker image from a Dockerfile #
+#############################################
+
+#====================================================
+# TASK 1: Write a Dockerfile with the content below:
+#====================================================
+
+nano Dockerfile # paste the following lines:
+
+# Start from debian linux image (DockerHub)
+FROM debian:stable
+
+# Add custom label
+LABEL maintainer "Ilaria Marina Michelozzi ilariamarina.michelozzi@uvic.cat" \
+      version "0.1" \
+      description "Docker image for R script"
+
+# Install R (after apt-get update)
+RUN apt-get update && apt-get install -y r-base
+
+# Install R package 'optparse'
+RUN R -e 'install.packages("optparse", repos = "http://cloud.r-project.org/")'
+
+# Make the folder '/scripts' in the container
+RUN mkdir /scripts
+
+# Copy 'scripts/script.R' to the folder '/scripts' in the container
+ADD scripts/script.R /scripts
+
+#==================================================
+# TASK 2: Build a Docker image using the Dockerfile
+#==================================================
+
+docker build -t handson .
+
+# List images
+docker images
+
+######################
+# 4. Run a container #
+######################
+
+#==============================================================
+# TASK 3: Run a ls command using the image built. 
+# Which is the name of the container that this command creates?
+#==============================================================
+
+docker run handson ls 
+
+# List all the containers
+docker ps -a
+
+## The container is named confident_tharp
+
+#=======================================
+# TASK 4: Run the container interactively.
+#=======================================
+
+docker run -i -t handson # you are in the container 
+ls
+pwd # /
+exit # to exit container
+
+## The path of script.R is /scripts/script.R 
+
+#==================================================
+# TASK 5: Run script.R --help inside the container. 
+#==================================================
+
+docker run -it handson # open container
+
+chmod +x /scripts/script.R && PATH="$PATH:/scripts" 
+script.R --help
+
+# Exit the container and run script.R --help inside the container
+docker run -i -t handson 
+script.R --help # command not found as it missed the chmod +x /scripts/script.R && PATH="$PATH:/scripts"  commands
+exit
+
+#===============================================================================================
+# TASK 6:  Include the following statements in your Dockerfile and build again your image. This    
+# will make script.R executable and accessible from any location within the container. Then, run  
+# again the script.R --help command within a container in a non-interactive manner (i.e. without  
+# the -i -t options), naming the container as you prefer.                                        
+#================================================================================================
+
+# Modify Dockerfile adding these last lines:
+# Give execution permissions to script.R
+RUN chmod +x /scripts/script.R
+# Add /scripts folder to the PATH environment variable
+ENV PATH="$PATH:/scripts"           
+
+# Build again the image
+docker build -t handson .
+
+# Run script.R --help command within the container in a non-interactive manner 
+docker run --name docker_handson handson script.R --help
+
+# Check commands run to build the image 
+docker history handson
+
+#==========================================================================================================================
+# TASK 7: Run a container interactively from your image. Then, use R inside the container to write a file with a single    
+# column of ~1000 numbers, with the format shown below. This will be the input file for your script. Finally, run script.R 
+# and redirect the STDOUT to a file named  summary.txt.                                                                    
+#==========================================================================================================================
+
+# Run a container interactively from your image 
+docker run -it handson
+
+# Use R interactively
+R
+n <- rnorm(1000)
+write.table(n, file = "input.txt", col.names=F, row.names=F)
+q()
+
+# Run script.R and redirect the STDOUT to a file named  summary.txt
+/scripts/script.R -i input.txt -o summary.pdf 1> summary.txt # in / we have input.txt, summary.pdf and summary.txt 
+exit
+
+# If I exit the container and do the following commands, the 3 files aren't there.
+docker run -i -t handson 
+ls
+exit
+
+##############
+# 5. Volumes #
+##############
+
+#==============================================================================================
+# TASK 8: Repeat task 7, now mounting a volume into the folder /data_vol within the container. 
+# Substitute for the name that you prefer. Save all input and output files (input + output PDF 
+# + redirected STDOUT) for script.R in /data_vol.                                              
+#==============================================================================================#
+
+# Create myvol and mount volume in the folder /data_vol in the container
+docker run -itv myvol:/data_vol handson
+
+# Run R interactively
+R
+n <- rnorm(1000)
+write.table(n, file = "/data_vol/input.txt", col.names=F, row.names=F)
+q()
+
+# Run script.R 
+/scripts/script.R -i /data_vol/input.txt -o /data_vol/summary.pdf 1> /data_vol/summary.txt # give input and output and summary.txt file
+ls
+cd data_vol # 3 files inside
+exit
+
+# To check if correctly mounted (once exited from container)
+docker inspect <containerID> # at the mount level: 
+
+# To see location volume myvol (look at Mountpoint)
+docker volume inspect myvol
+
+# List all volumes
+docker volume ls 
+
+docker run -it handson # no data_vol folder
+exit
+
+docker run -itv myvol:/magicfolder handson # no dat_vol folder but there is magic folder with 3 files stored in myvol
+exit 
+
+# To remove a volume
+docker volume rm myvol
+
+#==================================================================================================
+# TASK 9: Employ a bind mount to use data/normal.txt as input for script.R within the container.   
+# Save the output files (PDF + redirected STDOUT) in the target folder. Do it in a non-interactive 
+# manner, that is, without the -i and -t options.                                                  
+#==================================================================================================
+
+#Pwd: /Users/ilariamarinamichelozzi/Documents/MSc bioinformatics/UVIC/Epigenomics/Borsari_garrido/HANDS ON/docker/teaching/
+#Folder data/normal.txt = input
+
+docker run -v "$(pwd)"/data:/mybidmount1 -w / handson scripts/script.R -i mybidmount1/normal.txt -o mybidmount1/summary.pdf 1> "$(pwd)"/data/summary.txt # 3 files in data folder in my host machine 
+
+docker inspect <containerID>
+
+#===============================================================================
+# Now just try to run something interactively but using a bind mount.           
+# Note that all the changes that you do in the host folder                      
+# (e.g. creating an empty file using touch <file>) can be seen in the           
+# container folder in real time, and viceversa (you can check that by           
+# opening two terminal sessions, one within the container, one within the host).
+#===============================================================================
+
+# To access mybidmount1:
+docker run -itv "$(pwd)"/data:/mybidmount1 handson 
+ls
+cd mybidmount1 # 3 files in it	
+touch file # appeared also in host machine folder
+# go to my terminal host machine folder data
+rm file # removed both from host machine and container bind mount
+exit
+
+################
+# 6. DockerHub #
+################
+
+#=========================================
+# TASK 10: Upload your image to DockerHub 
+#=========================================
+
+# Log in with my DockerID
+docker login
+
+# Rename image and create a new one
+docker tag handson ilariamichelozzi/handson_repo:handson_hub
+
+# Upload renamed image
+docker push ilariamichelozzi/handson_repo:handson_hub
+
+#===================================================================
+# TASK 11: Search DockerHub for images with the keyword ggsashimi,  
+# and pull the one built by guigolab. Then, try to reproduce the    
+# example depicted in this GitHub repo.                             
+#===================================================================
+
+docker search ggsashimi # select the one guigolab/ggsashimi 
+
+# Download ggsashimi docker image
+docker pull guigolab/ggsashimi 
+
+# Clone ggsashimi repository to have data
+git clone https://github.com/guigolab/ggsashimi.git
+cd ggsashimi
+
+# Use ggsashimi image to reproduce the example
+docker run -w "$(pwd)" -v "$(pwd)":/"$(pwd)" guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100 -g examples/annotation.gtf -M 10 -C 3 -O 3 --shrink --alpha 0.25 --base-size=20 --ann-height=4 --height=3 --width=18 -P examples/palette.txt
+
+# TO REMOVE MULTIPLE CONTAINERS IN ONE GO
+
+## List all containers ID
+docker ps -aq
+
+## Remove the first 37 containers
+docker rm $(docker ps -aq| head -37)
+
+
+# TO REMOVE MULTIPLE IMAGES IN ONE GO 
+
+## List all containers ID
+docker images -q
+
+## Remove the first 6 images
+docker rmi $(docker images -q| head -6)
+
+#################################################################################################################
+# PRACTICAL EXERCISE 6.1                                                                                        #
+# Build a Docker image for the seqClass.py script written during the Git hands-on.                              #
+# Make sure you can run the script within the corresponding Docker container and upload the image to DockerHub. #
+#################################################################################################################
+
+Pwd: /Users/ilariamarinamichelozzi/Documents/MSc bioinformatics/UVIC/Epigenomics/Borsari_garrido/HANDS_ON/git_HandsOn
+
+# From git project -master branch-, create a new branch docker
+git branch docker
+git checkout docker
+
+# From branch docker remove git code file, add the change and commit it
+rm git_HandsOn_code
+git add git_HandsOn_code
+git commit -m "remove git code"
+
+# Try and see if the script runs
+python seqClass.py -s atgtg
+
+# 1. Create Dockerfile
+nano Dockerfile # paste the following text
+
+# Start from debian linux image
+FROM debian:stable
+
+# Add custom label
+LABEL maintainer "IlariaMichelozzi ilariamarina.michelozzi@uvic.cat" \
+      version "0.1" \
+      description "Docker image for seqClass.py"
+
+# Install needed tools
+RUN apt-get update \
+    &&  apt-get install -y --no-install-recommends \
+         python-is-python3
+
+# Make the folder '/scripts' in the container
+RUN mkdir /scripts
+
+# Copy 'seqClass.py' to the folder '/scripts' in the container
+ADD seqClass.py /scripts
+
+# 2. Build Docker image
+docker build -t python_seqclass .
+
+# 3. Run Docker container in a not interactive way
+docker run python_seqclass python scripts/seqClass.py -s atgtg
+
+# 4. Upload the image to DockerHub
+docker login
+
+## Rename the image and create a new one
+docker tag python_seqclass ilariamichelozzi/practical:exercise1
+
+## Upload the renamed image
+docker push ilariamichelozzi/practical:exercise1
+
+## To test if it works, run the following commands from a different computer
+docker pull ilariamichelozzi/practical:exercise1
+docker run ilariamichelozzi/practical:exercise1 python scripts/seqClass.py -s atgtg
+
+# Add text file with code to the docker branch
+nano docker_handson_code # paste
+
+# Add and commit changes in docker branch
+git add docker_handson_code Dockerfile
+git commit -m "docker"
+
+# Push docker branch
+git push -u origin docker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
