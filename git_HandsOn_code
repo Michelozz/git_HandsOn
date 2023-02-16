@@ -1,0 +1,619 @@
+# wd: /Users/ilariamarinamichelozzi/Documents/MSc_bioinformatics/UVIC/Epigenomics/Borsari_garrido/HANDS_ON
+
+################
+# 1. Hello Git #
+################
+
+# Create a folder called git_HandsOn and move to it
+mkdir git_HandsOn
+cd git_HandsOn
+
+# Create a python3 script called seqClass.py with the following content
+nano seqClass.py #paste the following content
+
+#!/usr/bin/env python
+
+import sys, re
+from argparse import ArgumentParser
+
+parser = ArgumentParser(description = 'Classify a sequence as DNA or RNA')
+parser.add_argument("-s", "--seq", type = str, required = True, help = "Input sequence")
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit(1)
+
+args = parser.parse_args()
+
+if re.search('^[ACGTU]+$', args.seq):
+    if re.search('T', args.seq):
+        print ('The sequence is DNA')
+    elif re.search('U', args.seq):
+        print ('The sequence is RNA')
+    else:
+        print ('The sequence can be DNA or RNA')
+else:
+    print ('The sequence is not DNA nor RNA')
+
+# Test the script
+python seqClass.py -s AGTG
+python seqClass.py -s ACGUA
+python seqClass.py -s agtg
+python seqClass.py -s UTUT
+
+#########################
+# 2. BASIC GIT WORKFLOW #
+#########################
+
+#=================================================================
+# TASK 1: Initialise an empty Git repo in the git_HandsOn folder 
+# and explore the content of the .git folder. 
+#=================================================================
+
+# Initialise an empty Git repo
+git init
+
+# Explore the content of the .git folder
+ls -a
+cd .git
+
+# Exit .git folder
+cd ..
+
+#=====================================================
+# TASK 2: Check the status of the git_HandsOn project. 
+#=====================================================
+
+git status # in red, untracked file
+
+#=================================================================================
+# TASK 3: Add seqClass.py to the staging area and check the status of the project. 
+#=================================================================================
+
+git add seqClass.py
+git status # in green, Changes to be committed
+
+#=============================================
+# TASK 4: Commit the changes and check status. 
+#=============================================
+
+git commit -m "original script"
+# To exit vi editor, press esc and then :wq enter
+git status # nothing to commit
+
+#=================================================================================
+# TASK 5: Check the difference between the working directory and the staging area. 
+# Then commit the changes in seqClass.py. 
+#=================================================================================
+
+# Modify the file
+nano seqClass.py # add just the line args.seq = args.seq.upper()                
+
+# Test the script
+python seqClass.py -s agtg
+
+# Check status
+git status #in red, modified but not staged
+
+# Compare the changes in the working directory (modified) and in the staging area (old version)
+git diff seqClass.py 
+
+# Add the changes to the staging area
+git add seqClass.py
+
+# Check status
+git status # green, Changes to be committed
+
+# Commit changes
+git commit -m "upper case"
+
+#============================
+# TASK 6: History of commits
+#============================
+
+git log
+
+###################
+# 3. BACKTRACKING #
+###################
+
+#======================================================
+# TASK 6: Display the last commit using git show HEAD.
+#======================================================
+
+git show HEAD 
+
+#==============================================================================================
+# TASK 7: Edit the script to modify the message it prints when the sequence is not DNA nor RNA.
+# Monitor the change, then undo it. 
+#==============================================================================================
+
+# Modify file
+nano seqClass.py # change the mex in isn't
+
+# Monitor changes
+git status # red, changes not staged
+
+# Undo last changes
+git checkout HEAD seqClass.py
+
+# Checkout an older version of your working directory
+git checkout f9a6d
+git log # only the version selected is displayed as head
+
+# Return to master
+git checkout master
+git log # all commits are displayed
+
+#============================================================================================
+# TASK 8: Remove any line from the script. Then, add the changes to the 
+# staging area, and undo this action using git reset. Use git status to monitor these steps.
+#============================================================================================
+
+# Modify script
+nano seqClass.py  # press CTRL K 
+
+# Monitor changes
+git status # red, Changes not staged for commit
+
+# Add the changes to the staging area
+git add seqClass.py
+
+# Check status
+git status # green, Changes to be committed
+
+# Undo changes
+git reset HEAD seqClass.py # resets the changes in the staging area to be the same as the HEAD commit. In working directory still empty file
+
+# Check status
+git status # red, Changes not staged for commit
+
+# Recover the erased lines in the working directory
+git checkout HEAD seqClass.py
+
+# Check status
+git status # nothing to commit
+
+#============================================================================
+# TASK 9: Edit the script to modify the help message, stage it and commit it.
+# Then use git revert to undo the commit.
+#============================================================================
+
+# Modify file
+nano seqClass.py # help = "Input"
+
+# Add the changes to the staging area
+git add seqClass.py
+
+# Check status
+git status # green, changes to be committed
+
+# Check differences between working directory and staging area
+git diff seqClass.py # no differences as file is staged 
+
+# Commit the changes
+git commit -m "modified input message"
+
+# Undo the commit
+git revert HEAD
+
+git log # 4 commits
+
+#################
+# 4. BRANCHING #
+#################
+
+#==============================================================================
+# TASK 10: Create a new branch motif and check on which branch you are located. 
+#==============================================================================
+
+# Create a new branch motif
+git branch motif
+
+# Check which branch I am using
+git branch # master
+
+#===========================================================================
+# TASK 11: Switch branch to motif. Verify the switch is succesfull and that 
+# the commit history of both branches is identical. 
+#===========================================================================
+
+# Switch to motif branch
+git checkout motif
+
+# Check in which branch I am
+git branch
+
+# Check commit history
+git log # 4 commits
+
+#========================================================================
+# TASK 12: Modify seqClass.py script to add motif feature in motif branch.
+# Stage and commit the changes in branch motif. 
+#========================================================================
+
+# Modify script with the following code
+nano seqClass.py # paste the following code
+
+parser.add_argument("-m", "--motif", type = str, required = False, help = "Motif")
+
+if args.motif:
+    args.motif = args.motif.upper()
+    print(f'Motif search enabled: looking for motif "{args.motif}" in sequence "{args.seq}"... ', end = '')
+    if re.search(args.motif, args.seq):
+        print("FOUND")
+    else:
+        print("NOT FOUND")
+
+# Check status
+git status # red not staged
+
+# Add the changes to the staging area
+git add seqClass.py
+git status # green, changes to be committed
+
+# Commit the changes
+git commit -m "find motifs"
+git status
+
+# Check commit history 
+git log # 5 commits in motif branch
+
+# Check the script
+python seqClass.py -s actg
+python seqClass.py -s actg -m tg
+
+#========================================================================
+# TASK 12: Switch to master branch and merge motif branch back to master. 
+#========================================================================
+
+# Switch to the master branch
+git checkout master
+
+# Check I am in branch master
+git branch
+
+# Check commit history in master
+git log # 4 commits
+
+# Merge motif branch to master
+git merge motif 
+
+# Check commit history in master
+git log # 5 commits in master branch
+
+#==========================================================================
+# TASK 13:  In the master branch, modify the message that seqClass.py 
+# prints when it finds the motif, add and commit the changes. 
+# Then, switch to the motif branch and modify the message that seqClass.py 
+# prints when it does not find the motif, add and commit 
+# the changes. Finally, merge the motif branch back into master. 
+#===========================================================================
+
+# Check branch
+git branch # master
+
+# Change script in master branch, add and commit the changes
+nano seqClass.py # change message in IT IS FOUND
+git status # red, Changes not staged for commit
+git add seqClass.py
+git commit -m "found motif message"
+git log # 6 commits
+
+# Switch to motif branch 
+git checkout motif
+git branch
+
+# Modify script
+nano seqClass.py # change message in THE MOTIF IS NOT FOUND
+
+# Add the changes to the staging area
+git add seqClass.py
+
+# Commit the changes
+git commit -m "not found motif message"
+
+# Check commit history
+git log # 6 commits
+
+# Merge the motif branch back to master
+git checkout master
+git merge motif 
+
+# Check commit history
+git log # 8 commits in master because merges the last in motif and the new merge
+
+## In motif branch, 6 commits
+
+#====================================================================
+# TASK 14: Repeat the previous task but modifying in both cases the 
+# message that seqClass.py prints when it finds the motif.
+#====================================================================
+
+# Modify script in branch master, add and commit
+nano seqClass.py # modify message in IT IS FOUND!
+git add seqClass.py
+git commit -m "second modification found"
+git log # 9 commits
+
+# Modify the script in branch motif, add and commit
+git checkout motif
+nano seqClass.py # modifiy message in THE MOTIF IS FOUND
+git add seqClass.py
+git commit -m "third modification found"
+
+# Move to master branch
+git checkout master
+
+# Merge branches
+git merge motif 
+
+# Auto-merging seqClass.py
+#CONFLICT (content): Merge conflict in seqClass.py
+#Automatic merge failed; fix conflicts and then commit the result.
+
+#========================================================================
+# TASK 15: Delete the content of the line as it appears in the master 
+# branch as well as all Git's special markings including the words HEAD 
+# and motif. Then save the file, add and commit your changes.
+#========================================================================
+
+# Modify the script
+nano seqClass.py # we are in master branch, delete as requested
+
+# Add changes to the staging area
+git add seqClass.py 
+
+# Commit the changes
+git commit -m "motif branch version"
+
+#===================================
+# TASK 16: Delete the motif branch. 
+#===================================
+
+git branch -d motif # I am in master branch
+
+
+######################################
+# 5. Working with remote repositories # 
+######################################
+
+# Create a GitHub account
+
+# Create an empty public repository in your GitHub account named git_HandsOn without a README.md
+
+# Make git_HandsOn a remote repository for the local repository git_HandsOn (on terminal)
+git remote add origin https://github.com/Michelozz/git_HandsOn.git
+git push -u origin master
+
+#================================================================
+# TASK 17: Edit your script to add some comment lines explaining 
+# what every piece of code does, stage it and commit. Then push  
+# the commits to your remote repository. The changes will be     
+# visible at GitHub.                                             
+#=================================================================
+
+# Modify the script in the terminal by adding comment lines as follows
+nano seqClass.py
+
+#!/usr/bin/env python
+
+# Import packages and functions
+import sys, re
+from argparse import ArgumentParser
+
+# Create the parser container and specify the arguments sequence and motif
+parser = ArgumentParser(description = 'Classify a sequence as DNA or RNA')
+parser.add_argument("-s", "--seq", type = str, required = True, help = "Input sequence")
+parser.add_argument("-m", "--motif", type = str, required = False, help = "Motif")
+
+# Exit the program if the number of command line arguments is 1
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit(1)
+
+args = parser.parse_args()
+
+# Transform in upper case the sequence, classify the sequence as DNA, RNA, both or neither of the two and print the output
+args.seq = args.seq.upper()
+if re.search('^[ACGTU]+$', args.seq):
+    if re.search('T', args.seq):
+        print ('The sequence is DNA')
+    elif re.search('U', args.seq):
+        print ('The sequence is RNA')
+    else:
+        print ('The sequence can be DNA or RNA')
+else:
+    print ('The sequence is not DNA nor RNA')
+
+# Transform in upper case the motif, search for the motif in the sequence and print the output
+if args.motif:
+    args.motif = args.motif.upper()
+    print(f'Motif search enabled: looking for motif "{args.motif}" in sequence "{args.seq}"... ', end = '')
+    if re.search(args.motif, args.seq):
+        print("THE MOTIF IS FOUND")
+    else:
+        print("THE MOTIF IS NOT FOUND")
+
+# Add the changes to the staging area
+git add seqClass.py
+
+# Commit the changes
+git commit -m "comment lines"
+
+# Push the commits to my remote repository
+git push
+
+#====================================================================================
+# TASK 18: Through the GitHub webpage, add a README.md file explaining              
+# the usage of the script seqClass.py and commit. It can contain just a             
+# line, or something more elaborated. Then, pull the commit to your local repository.
+#====================================================================================
+
+# Create a README.Rm file in GitHub 
+
+# Commit the changes in GitHub
+
+# Pull the commit to my local repository
+git pull 
+
+#=======================================================
+# TASK 20: Clone the ggsashimi repository from guigolab. 
+#=======================================================
+
+# Get a local copy of ggsashimi repository from guigolab
+git clone https://github.com/guigolab/ggsashimi
+
+################
+# 6. EXERCISES #
+# Exercise 1   #
+################
+
+#=================================================
+# 1. Make a new branch called fix and move to it. 
+#=================================================
+git branch fix 
+git checkout fix
+
+#=================================================================================================
+# 2. Fix the seqClass.py script so that it is able to classify correctly any RNA or DNA sequence.
+#=================================================================================================
+
+# Modify the script in the fix branch in the following lines of code:
+nano seqClass.py
+
+args.seq = args.seq.upper()
+if re.search('^[ACGTU]+$', args.seq):
+    if 'U' in args.seq and 'T' in args.seq:
+        print ('The sequence does not exist')
+    elif 'T' in args.seq:
+        print ('The sequence is DNA')
+    elif 'U' in args.seq:
+        print ('The sequence is RNA')
+    else:
+        print ('The sequence can be DNA or RNA')
+else:
+    print ('The sequence is not DNA nor RNA')
+
+# Add the changes to the staging area
+git add seqClass.py
+
+# Commit the changes
+git commit -m "fixed UT"
+
+# Test the script 
+python seqClass.py -s actg
+python seqClass.py -s ututg
+
+#=========================================
+# 3. Merge the fix branch back to master.
+#=========================================
+
+# Move to the master branch
+git checkout master
+
+# Merge the fix branch to master
+git merge fix
+
+#========================================================
+# 4. Make sure you add comments to explain your changes.
+#========================================================
+
+# Modify the script adding comments on the new lines (#)
+
+# Transform in upper case the sequence, classify the sequence as not existing, as DNA, RNA, both or neither of the two and print the output
+args.seq = args.seq.upper()
+if re.search('^[ACGTU]+$', args.seq):
+    if 'U' in args.seq and 'T' in args.seq:  # added
+        print ('The sequence does not exist') # added
+
+
+# Write a new file with the code of the Git handson and name it git_HandsOn_code
+
+#=====================================================================
+# 5. Stage and commit the changes on master in your local repository. 
+#=====================================================================
+
+# Add the changes to the staging area
+git add seqClass.py git_HandsOn_code
+
+# Commit the changes
+git commit -m "practical"
+
+#===========================================================
+# 6. Push your commits on master to your GitHub repository.
+#===========================================================
+git push 
+
+#====================================================================================
+# 7. Push your changes in the fix branch to your GitHub repository.
+#====================================================================================
+
+# Move to fix branch
+git checkout fix
+
+# Push the changes in the fix branch 
+git push -u origin fix # to create a new branch in GitHub
+
+# Move to master branch
+git checkout master
+
+#==============================================================================================
+# 8. Together with a classmate, collaborate using Git and GitHub to create and modify a python   
+# script that computes, given a DNA or RNA sequence, the percentage of each nucleotide.                
+#==============================================================================================
+
+# Create a new branch where to work with collaborator
+git branch task8practical
+
+# Move into it
+git checkout task8practical
+
+# Remove script seqClass.py and code file
+rm seqClass.py
+rm git_HandsOn_code
+
+# Add changes to the staging area
+git add seqClass.py git_HandsOn_code
+
+# Commit the changes
+git commit -m "remove seqClass.py and code"
+
+# Create the script percentage_nts.py 
+
+# Check script
+python percentage_nts.py -s ATGTGTGTG
+
+# Script output
+#Percentage of A in the sequence: 11
+#Percentage of T in the sequence: 44
+#Percentage of C in the sequence: 0
+#Percentage of G in the sequence: 44
+#Percentage of U in the sequence: 0
+
+# Add changes to the staging area
+git add percentage_nts.py
+
+# Commit the changes
+git commit -m 'percentage nucleotides'
+
+# Push
+git push -u origin task8practical
+
+# On GitHub are available the changes performed by me and my collaborator to percentage_nts.py script
+
+## To update my local repository, pull the commit 
+## (from task8practical branch in GitHub repository to task8practical branch in local repository)
+## If not already in task8practical branch move to it
+git pull
+
+## Modify the version of the script, add, commit and update the changes in my remote repository 
+nano percentage_nts.py # modify
+git add percentage_nts.py
+git commit -m "message" # write the message according to the modification performed
+git push
+
+# Move to master branch for the Docker practical
+git checkout master
+
+

@@ -16,11 +16,11 @@ if len(sys.argv) == 1:
 
 args = parser.parse_args()
 
-# Transform in upper case the sequence, classify the sequence as DNA, RNA, both or neither of the two and print the output
+# Transform in upper case the sequence, classify the sequence as not existing, as DNA, RNA, both or neither of the two and print the output
 args.seq = args.seq.upper()
 if re.search('^[ACGTU]+$', args.seq):
-    if 'U' in args.seq and 'T' in args.seq:
-        print ('The sequence does not exist')
+    if 'U' in args.seq and 'T' in args.seq: # added
+        print ('The sequence does not exist') # added
     elif 'T' in args.seq:
         print ('The sequence is DNA')
     elif 'U' in args.seq:
