@@ -24,15 +24,13 @@ it counts the nucleotide specified.
 # Then we report whether the sequence is DNA or RNA
 # Finally we provide the percentage of each nucleotide
  
-nt_contents = { "A":0, "T":0, "C":0, "G":0, "U":0} # accumulator
+nt_contents = { "A":0, "T":0, "C":0, "G":0, "U":0}
 if re.search('^[ACGTU]+$', args.seq):
     if 'U' in args.seq and 'T' in args.seq:
         print ('The sequence does not exist')
     else:
-        # Get dictionary with counts
         for nt in args.seq: 
             nt_contents[nt] = nt_contents[nt] + 1 
-        # Get percentages for each nucleotide inside the dictionary   
         for key in nt_contents: 
             nt_contents[key] /= len(args.seq) 
             nt_contents[key] *= 100
