@@ -27,7 +27,7 @@ args.seq = args.seq.upper()
 nt_contents = { "A":0, "T":0, "C":0, "G":0, "U":0} #accumulator
 if re.search('^[ACGTU]+$', args.seq):
     if 'U' in args.seq and 'T' in args.seq:
-        print ('The sequence does not exist')
+        print ('The sequence provided does not exist')
     else:
     # Get dictionary with counts
         for nt in args.seq: 
