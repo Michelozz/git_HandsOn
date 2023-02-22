@@ -39,4 +39,4 @@ if re.search('^[ACGTU]+$', args.seq):
         for nt, percentage in nt_contents.items():
             print('Percentage of',nt,'in the sequence:', round(percentage))
 else:
-    print ('The sequence is not DNA nor RNA')
+    print ('The sequence provided is not DNA nor RNA')
